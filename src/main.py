@@ -1,3 +1,22 @@
+# Hu Tao Art Searcher
+# Copyright (C) 2024  F1zzTao
+
+# This file is part of Hu Tao Art Searcher.
+# Hu Tao Art Searcher is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with Hu Tao Art Searcher.  If not, see <https://www.gnu.org/licenses/>.
+
+# You may contact F1zzTao by this email address: timurbogdanov2008@gmail.com
+
 import logging
 
 from loguru import logger
@@ -37,7 +56,7 @@ async def search_tao_handler(message: Message, custom_search: str | None = None)
     msg_to_edit = await message.answer('🔎 Ищем, пожалуйста подождите...')
 
     existing_posts = await get_posts()
-    reviewed_posts_ids = [post[0] for post in existing_posts if post[1] != 'no_rating']
+    reviewed_posts_ids = [post['id'] for post in existing_posts if post['status'] != 'no_rating']
     new_posts = await dan.search(custom_search or HU_TAO_QUERY, limit=10)
     show_posts = []
     for post in new_posts:
@@ -55,6 +74,7 @@ async def search_tao_handler(message: Message, custom_search: str | None = None)
                 {
                     'id': post['id'],
                     'preview_url': post['large_file_url'],
+                    'file_url': post['file_url'],
                     'artist': post['tag_string_artist'],
                     'characters': formatted_characters,
                     'url': post['post_url'],
@@ -66,8 +86,7 @@ async def search_tao_handler(message: Message, custom_search: str | None = None)
             continue
         logger.info(f'Found new post (by {post["tag_string_artist"]}): {post["post_url"]}')
 
-    post_ids = [post['id'] for post in show_posts]
-    await add_posts(post_ids)
+    await add_posts(show_posts)
 
     if not show_posts:
         await bot.api.messages.edit(
@@ -80,7 +99,8 @@ async def search_tao_handler(message: Message, custom_search: str | None = None)
         )
         return
 
-    search_id = await create_search(show_posts)
+    post_ids = [post['id'] for post in show_posts]
+    search_id = await create_search(post_ids)
     completed_search = await run_search(photo_upl, message.peer_id, search_id)
 
     await bot.api.messages.edit(
@@ -233,7 +253,8 @@ async def post_handler(event: MessageEvent):
     payload = event.get_payload_json()
     search_id = payload['search_id']
 
-    to_post_ids = await get_modified_from_search(search_id, 'to_post')
+    to_post = await get_modified_from_search(search_id, 'to_post')
+    to_post_ids = [post['id'] for post in to_post]
     await event.edit_message('⏳ Постим посты...')
 
     await delete_search(search_id)
@@ -266,7 +287,8 @@ async def cancel_search_handler(event: MessageEvent):
     search_id = payload['search_id']
 
     # Defaulting every post's status from search
-    to_post_ids = await get_modified_from_search(search_id)
+    to_post = await get_modified_from_search(search_id)
+    to_post_ids = [post['id'] for post in to_post]
     await update_posts_status(to_post_ids, 'no_rating')
 
     await delete_search(search_id)

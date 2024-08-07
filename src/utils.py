@@ -1,9 +1,29 @@
+# Hu Tao Art Searcher
+# Copyright (C) 2024  F1zzTao
+
+# This file is part of Hu Tao Art Searcher.
+# Hu Tao Art Searcher is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with Hu Tao Art Searcher.  If not, see <https://www.gnu.org/licenses/>.
+
+# You may contact F1zzTao by this email address: timurbogdanov2008@gmail.com
+
+import asyncio
 import aiohttp
 from vkbottle import Callback, Keyboard, VKAPIError
 from vkbottle import KeyboardButtonColor as Color
 from vkbottle.tools import PhotoMessageUploader
 
-from db import get_search_posts, save_uploaded_attachment, get_posts, get_post_attachment
+from db import get_post, get_search_posts, save_uploaded_attachment, get_posts, get_post_attachment
 from typing import Literal
 from enums import PostAction
 from loguru import logger
@@ -39,7 +59,7 @@ async def run_search(
     uploader: PhotoMessageUploader, peer_id: int, search_id: int, offset: int = 0
 ) -> dict:
     try:
-        show_post = (await get_search_posts(search_id))[offset]
+        show_post_id = (await get_search_posts(search_id))[offset]
     except IndexError:
         end_kbd = (
             Keyboard(inline=True)
@@ -55,6 +75,8 @@ async def run_search(
             "photo": None,
             "keyboard": end_kbd,
         }
+
+    show_post = await get_post(show_post_id)
 
     try:
         photo = await get_attachment(uploader, peer_id, show_post['preview_url'], show_post['id'])
@@ -128,26 +150,29 @@ async def run_search(
 async def get_modified_from_search(
     search_id: int,
     include_only: Literal['no_rating', 'to_post', 'deleted'] | None = None
-) -> list[int]:
-    search_posts = await get_search_posts(search_id)
-    search_posts_ids = [post['id'] for post in search_posts]
-
-    posts = await get_posts()
-    posts_dict = dict(posts)
-
-    if include_only:
-        to_post = [post for post in search_posts_ids if posts_dict.get(post) == include_only]
-    else:
-        to_post = [post for post in search_posts_ids if posts_dict.get(post) != 'no_rating']
-    return to_post
-
-    """
+) -> list[dict]:
     # This gets all post info, not only ids. Might be useful in the future.
-    search_posts = await get_search_posts(search_id)
+    search_post_ids = await get_search_posts(search_id)
     posts = await get_posts()
 
-    all_modified_posts = {post[0] for post in posts if post[1] != 'no_rating'}
-    search_modified = [post for post in search_posts if post['id'] in all_modified_posts]
+    modified_posts = []
+    if include_only:
+        for post in posts:
+            if post['id'] in search_post_ids and post['status'] == include_only:
+                modified_posts.append(post)
+    else:
+        for post in posts:
+            if post['id'] in search_post_ids and post['status'] != 'no_rating':
+                modified_posts.append(post)
 
-    return search_modified
-    """
+    return modified_posts
+
+
+async def main():
+    search_id = 1
+    modified = await get_modified_from_search(search_id)
+    print(modified)
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
