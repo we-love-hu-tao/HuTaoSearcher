@@ -280,7 +280,7 @@ async def post_handler(event: MessageEvent):
     await delete_search(search_id)
     await update_posts_status(to_post_ids, 'deleted')
 
-    for post in to_post:
+    async for post in to_post:
         last_rerun_day = await get_rerun_day(user.api, GROUP_ID)
         attachment = await upload_wall_photo(photo_wall_upl, post['file_url'], GROUP_ID)
         text = create_text(last_rerun_day, post['artist'], post['characters'])
