@@ -18,15 +18,25 @@
 # You may contact F1zzTao by this email address: timurbogdanov2008@gmail.com
 
 import asyncio
+import re
+from typing import Literal
+
 import aiohttp
-from vkbottle import Callback, Keyboard, VKAPIError
+from loguru import logger
+from vkbottle import API, Callback, Keyboard
 from vkbottle import KeyboardButtonColor as Color
+from vkbottle import PhotoWallUploader, VKAPIError
 from vkbottle.tools import PhotoMessageUploader
 
-from db import get_post, get_search_posts, save_uploaded_attachment, get_posts, get_post_attachment
-from typing import Literal
+from config import CHARACTER_RENAMINGS, HU_TAO_RUSSIAN_TAG, RERUN_DAY_SEARCH_RE
+from db import (
+    get_post,
+    get_post_attachment,
+    get_posts,
+    get_search_posts,
+    save_uploaded_attachment
+)
 from enums import PostAction
-from loguru import logger
 
 
 async def img_url_to_bytes(url: str) -> bytes:
@@ -41,17 +51,27 @@ async def get_attachment(
 ) -> str:
     post_attachment = await get_post_attachment(post_id)
     if post_attachment:
-        logger.info(f"Attachment for post {post_id} already exists in db")
+        logger.info(f'Attachment for post {post_id} already exists in db')
         return post_attachment
 
     # Uploading image as an attachment and saving it in the database
-    logger.info(f"Uploading new attachment for post {post_id}")
+    logger.info(f'Uploading new attachment for post {post_id}')
     image_bytes = await img_url_to_bytes(url)
     photo = await uploader.upload(
         file_source=image_bytes,
         peer_id=peer_id
     )
     await save_uploaded_attachment(post_id, photo)
+    return photo
+
+
+async def upload_wall_photo(
+    uploader: PhotoWallUploader, url: str, group_id: int
+) -> str:
+    # Uploading image as a wall photo
+    logger.info(f"Uploading new wall photo from this url: {url}")
+    image_bytes = await img_url_to_bytes(url)
+    photo = await uploader.upload(image_bytes, group_id)
     return photo
 
 
@@ -166,6 +186,64 @@ async def get_modified_from_search(
                 modified_posts.append(post)
 
     return modified_posts
+
+
+def hu_tao_sort(character: str):
+    if character == "HuTao":
+        return (0, character)
+    elif character == "ХуТао":
+        return (1, character)
+    else:
+        return (2, character)
+
+
+def characters_to_tags(characters: str) -> str:
+    """
+    Converts Genshin Impact character Danbooru-styled tags to normal tags.
+    This also sorts them, so Hu Tao is always first, just like she is at anything.
+    >>> characters_to_tags("keqing_(genshin_impact) hu_tao_(genshin_impact)")
+    >>> "#HuTao #ХуТао #Keqing"
+    """
+    characters = characters.replace('_(genshin_impact)', '')
+    characters = characters.title()
+    characters = characters.replace('_', '')
+    characters_list = characters.split()
+    characters_list = [
+        CHARACTER_RENAMINGS.get(character) or character for character in characters_list
+    ]
+    for i, character in enumerate(characters_list):
+        if character != 'HuTao':
+            continue
+
+        # Add Russian variant right next to the original one
+        characters_list.insert(i+1, HU_TAO_RUSSIAN_TAG)
+        break
+
+    characters_sorted_list = sorted(characters_list, key=hu_tao_sort)
+    characters = ' '.join('#'+word for word in characters_sorted_list)
+    return characters
+
+
+async def get_rerun_day(api: API, group_id: int, search_in=20) -> int | None:
+    last_posts_request = await api.wall.get(owner_id=-group_id, count=search_in)
+    last_posts = last_posts_request.items
+    for post in last_posts:
+        try:
+            post_text = post.text
+            re_match = re.search(RERUN_DAY_SEARCH_RE, post_text)
+            day = int(re_match.group(1))
+            return day
+        except AttributeError:
+            logger.info(f"Couldn't find rerun day in post {post.id}, trying next one")
+            continue
+
+
+def create_text(last_rerun_day: int, artist: str, characters: str):
+    msg = (
+        f"{last_rerun_day} без рерана Ху Тао\n\nАвтор: {artist}"
+        f"\n{characters} #genshinimpact #genshin_impact"
+    )
+    return msg
 
 
 async def main():

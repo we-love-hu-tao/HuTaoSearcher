@@ -23,9 +23,23 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ADMIN_IDS = (322615766,)
+# Group ID must be positive
+GROUP_ID = 193964161
+ADMIN_IDS = (322615766, 504114608,)
+
 HU_TAO_QUERY = 'hu_tao_(genshin_impact) -animated -rating:e'
+RERUN_DAY_SEARCH_RE = r'(\d+) день без рерана'
+HU_TAO_RUSSIAN_TAG = 'ХуТао'
+CHARACTER_RENAMINGS = {
+    "KamisatoAyaka": "Ayaka",
+    "KamisatoAyato": "Ayato",
+    "KaedeharaKazuha": "Kazuha",
+    "KujouSara": "Sara",
+    "SangonomiyaKokomi": "Kokomi",
+    "ShikanoinHeizou": "Heizou",
+}
 
 DB_PATH = './db.db'
 
 VK_API_TOKEN = os.getenv('VK_API_TOKEN')
+VK_USER_API_TOKEN = os.getenv('VK_USER_API_TOKEN')

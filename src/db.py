@@ -99,7 +99,7 @@ async def update_posts_status(
         await db.commit()
 
 
-async def get_posts() -> list[tuple]:
+async def get_posts() -> list[dict]:
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute('SELECT * FROM posts;')
         result = await cursor.fetchall()
@@ -150,8 +150,8 @@ async def posts_exists(post_id) -> bool:
 
 async def create_search(post_ids: list[int]) -> int:
     # Returns the search id of the newly created search
-    post_ids = [str(post_id) for post_id in post_ids]
-    posts_formatted = ','.join(post_ids)
+    post_ids_str = [str(post_id) for post_id in post_ids]
+    posts_formatted = ','.join(post_ids_str)
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute(
             'INSERT INTO searches (search_posts) VALUES (?) RETURNING search_id;',
@@ -190,14 +190,14 @@ async def save_uploaded_attachment(post_id: int, attachment_string: str) -> None
         await db.commit()
 
 
-async def get_post_attachment(post_id: int) -> str:
+async def get_post_attachment(post_id: int) -> str | None:
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             'SELECT attachment FROM vk_attachments WHERE id = ?;',
             (post_id,)
         )
         results = await cursor.fetchone()
-        return results
+        return (results[0] if results else None)
 
 
 async def main():

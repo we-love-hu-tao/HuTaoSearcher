@@ -17,15 +17,23 @@
 
 # You may contact F1zzTao by this email address: timurbogdanov2008@gmail.com
 
+import asyncio
 import logging
 
 from loguru import logger
 from vkbottle import Callback, GroupEventType, Keyboard
 from vkbottle import KeyboardButtonColor as Color
+from vkbottle import User
 from vkbottle.bot import Bot, Message, MessageEvent, rules
-from vkbottle.tools import PhotoMessageUploader
+from vkbottle.tools import PhotoMessageUploader, PhotoWallUploader
 
-from config import ADMIN_IDS, HU_TAO_QUERY, VK_API_TOKEN
+from config import (
+    ADMIN_IDS,
+    GROUP_ID,
+    HU_TAO_QUERY,
+    VK_API_TOKEN,
+    VK_USER_API_TOKEN
+)
 from db import (
     add_posts,
     create_db,
@@ -36,12 +44,21 @@ from db import (
 )
 from enums import PostAction, SearchAction
 from image_searchers import DanbooruSearcher
-from utils import run_search, get_modified_from_search
+from utils import (
+    characters_to_tags,
+    create_text,
+    get_modified_from_search,
+    get_rerun_day,
+    run_search,
+    upload_wall_photo
+)
 
 logging.getLogger('aiosqlite').setLevel(logging.INFO)
 
 bot = Bot(VK_API_TOKEN)
-photo_upl = PhotoMessageUploader(bot.api)
+user = User(VK_USER_API_TOKEN)
+photo_msg_upl = PhotoMessageUploader(bot.api)
+photo_wall_upl = PhotoWallUploader(user.api)
 dan = DanbooruSearcher()
 bot.labeler.vbml_ignore_case = True
 
@@ -64,12 +81,7 @@ async def search_tao_handler(message: Message, custom_search: str | None = None)
             continue
 
         try:
-            formatted_characters = (
-                post['tag_string_character']
-                .replace('_(genshin_impact)', '')
-                .replace(' ', ', ')
-                .replace('_', ' ')
-            ).strip().title()
+            formatted_characters = characters_to_tags(post['tag_string_character'])
             show_posts.append(
                 {
                     'id': post['id'],
@@ -101,7 +113,7 @@ async def search_tao_handler(message: Message, custom_search: str | None = None)
 
     post_ids = [post['id'] for post in show_posts]
     search_id = await create_search(post_ids)
-    completed_search = await run_search(photo_upl, message.peer_id, search_id)
+    completed_search = await run_search(photo_msg_upl, message.peer_id, search_id)
 
     await bot.api.messages.edit(
         peer_id=message.peer_id,
@@ -130,7 +142,7 @@ async def good_post_handler(event: MessageEvent):
     post_id, search_id, new_offset = payload['post_id'], payload['search_id'], payload['new_offset']
     await update_posts_status(post_id, 'to_post')
 
-    search_results = await run_search(photo_upl, event.peer_id, search_id, new_offset)
+    search_results = await run_search(photo_msg_upl, event.peer_id, search_id, new_offset)
     await event.edit_message(
         peer_id=event.peer_id,
         message=search_results['message'],
@@ -157,7 +169,7 @@ async def delete_post_handler(event: MessageEvent):
     post_id, search_id, new_offset = payload['post_id'], payload['search_id'], payload['new_offset']
     await update_posts_status(post_id, 'deleted')
 
-    search_results = await run_search(photo_upl, event.peer_id, search_id, new_offset)
+    search_results = await run_search(photo_msg_upl, event.peer_id, search_id, new_offset)
     await event.edit_message(
         peer_id=event.peer_id,
         message=search_results['message'],
@@ -183,7 +195,7 @@ async def unsure_post_handler(event: MessageEvent):
     payload = event.get_payload_json()
     search_id, new_offset = payload['search_id'], payload['new_offset']
 
-    search_results = await run_search(photo_upl, event.peer_id, search_id, new_offset)
+    search_results = await run_search(photo_msg_upl, event.peer_id, search_id, new_offset)
     await event.edit_message(
         peer_id=event.peer_id,
         message=search_results['message'],
@@ -228,11 +240,18 @@ async def end_search_handler(event: MessageEvent):
             Color.NEGATIVE
         )
     ).get_json()
+
+    ending = ''
+    if to_post_count >= 2 and to_post_count <= 4:
+        ending = 'а'
+    elif to_post_count >= 5:
+        ending = 'ов'
+
     await event.edit_message(
         peer_id=event.peer_id,
         message=(
             '➡️ Вы собираетесь запостить или оставить в отложке'
-            f' {to_post_count} постов. Продолжить?',
+            f' {to_post_count} пост{ending}. Продолжить?',
         ),
         keyboard=confirmation_kbd
     )
@@ -255,18 +274,29 @@ async def post_handler(event: MessageEvent):
 
     to_post = await get_modified_from_search(search_id, 'to_post')
     to_post_ids = [post['id'] for post in to_post]
+    to_post_count = len(to_post_ids)
     await event.edit_message('⏳ Постим посты...')
 
     await delete_search(search_id)
     await update_posts_status(to_post_ids, 'deleted')
 
-    for post in to_post_ids:
-        # await post_art(post['id'])
-        # await asyncio.sleep(0.5)
-        pass
+    for post in to_post:
+        last_rerun_day = await get_rerun_day(user.api, GROUP_ID)
+        attachment = await upload_wall_photo(photo_wall_upl, post['file_url'], GROUP_ID)
+        text = create_text(last_rerun_day, post['artist'], post['characters'])
+        await user.api.wall.post(
+            GROUP_ID, from_group=True, message=text, attachments=[attachment]
+        )
+        await asyncio.sleep(2)
+
+    ending = ''
+    if to_post_count >= 2 and to_post_count <= 4:
+        ending = 'а'
+    elif to_post_count >= 5:
+        ending = 'ов'
 
     await event.edit_message(
-        f'✅ Успешно запостили {len(to_post_ids)} постов!'
+        f'✅ Успешно запостили {to_post_count} пост{ending}!'
         ' Напишите ".Ху Тао" чтобы снова начать поиск!'
     )
 
@@ -297,6 +327,22 @@ async def cancel_search_handler(event: MessageEvent):
         '✋ Вы отменили поиск вместе со всеми изменениями. '
         'Напишите ".Ху Тао" чтобы снова начать поиск!'
     )
+
+
+@bot.on.private_message(text='!debug')
+async def debug_handler(message: Message):
+    if message.from_id not in ADMIN_IDS:
+        return
+
+    posts = await get_posts()
+    post = posts[0]
+    last_rerun_day = await get_rerun_day(user.api, GROUP_ID)
+
+    msg = (
+        f"{last_rerun_day} без рерана Ху Тао\n\nАвтор: {post['artist']}"
+        f"\n{post['characters']} #genshinimpact #genshin_impact"
+    )
+    return msg
 
 
 if __name__ == '__main__':
