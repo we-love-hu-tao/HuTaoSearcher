@@ -41,6 +41,7 @@ from enums import PostAction
 
 async def img_url_to_bytes(url: str) -> bytes:
     # Convert an image URL to a byte array
+    logger.info(f'Reading image from this URL: {url}')
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             return await response.read()
@@ -231,8 +232,8 @@ def characters_to_tags(characters: str) -> str:
 
 
 async def get_rerun_day(api: API, group_id: int, search_in=20) -> int | None:
+    logger.info(f'Getting last {search_in} posts')
     last_posts_request = await api.wall.get(owner_id=-group_id, count=search_in)
-    print(last_posts_request)
     last_posts = last_posts_request.items
     for post in last_posts:
         try:

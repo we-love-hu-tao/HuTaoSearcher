@@ -334,8 +334,8 @@ async def debug_handler(message: Message):
     if message.from_id not in ADMIN_IDS:
         return
 
-    a = await get_rerun_day(user.api, GROUP_ID)
-    return a
+    last_rerun_day = await get_rerun_day(user.api, GROUP_ID)
+    return f'Последний день рерана: {last_rerun_day} (следующий: {last_rerun_day+1})'
 
 
 if __name__ == '__main__':
