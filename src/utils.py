@@ -248,7 +248,7 @@ async def get_rerun_day(api: API, group_id: int, search_in=20) -> int | None:
 
 def create_text(next_rerun_day: int, artist: str, characters: str):
     msg = (
-        f"{next_rerun_day} без рерана Ху Тао\n\nАвтор: {artist}"
+        f"{next_rerun_day} день без рерана Ху Тао\n\nАвтор: {artist}"
         f"\n{characters} #genshinimpact #genshin_impact"
     )
     return msg
