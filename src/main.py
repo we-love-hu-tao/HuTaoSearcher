@@ -280,12 +280,12 @@ async def post_handler(event: MessageEvent):
     await delete_search(search_id)
     await update_posts_status(to_post_ids, 'deleted')
 
-    async for post in to_post:
+    for post in to_post:
         last_rerun_day = await get_rerun_day(user.api, GROUP_ID)
-        attachment = await upload_wall_photo(photo_wall_upl, post['file_url'], GROUP_ID)
-        text = create_text(last_rerun_day, post['artist'], post['characters'])
+        attachment = await upload_wall_photo(photo_wall_upl, post['file_url'])
+        text = create_text(last_rerun_day+1, post['artist'], post['characters'])
         await user.api.wall.post(
-            GROUP_ID, from_group=True, message=text, attachments=[attachment]
+            -GROUP_ID, from_group=True, message=text, attachments=[attachment]
         )
         await asyncio.sleep(2)
 
@@ -334,15 +334,8 @@ async def debug_handler(message: Message):
     if message.from_id not in ADMIN_IDS:
         return
 
-    posts = await get_posts()
-    post = posts[0]
-    last_rerun_day = await get_rerun_day(user.api, GROUP_ID)
-
-    msg = (
-        f"{last_rerun_day} без рерана Ху Тао\n\nАвтор: {post['artist']}"
-        f"\n{post['characters']} #genshinimpact #genshin_impact"
-    )
-    return msg
+    a = await get_rerun_day(user.api, GROUP_ID)
+    return a
 
 
 if __name__ == '__main__':

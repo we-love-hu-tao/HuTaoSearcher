@@ -28,7 +28,7 @@ from vkbottle import KeyboardButtonColor as Color
 from vkbottle import PhotoWallUploader, VKAPIError
 from vkbottle.tools import PhotoMessageUploader
 
-from config import CHARACTER_RENAMINGS, HU_TAO_RUSSIAN_TAG, RERUN_DAY_SEARCH_RE
+from config import CHARACTER_RENAMINGS, HU_TAO_RUSSIAN_TAG, IGNORE_TAGS, RERUN_DAY_SEARCH_RE
 from db import (
     get_post,
     get_post_attachment,
@@ -66,12 +66,12 @@ async def get_attachment(
 
 
 async def upload_wall_photo(
-    uploader: PhotoWallUploader, url: str, group_id: int
+    uploader: PhotoWallUploader, url: str
 ) -> str:
     # Uploading image as a wall photo
     logger.info(f"Uploading new wall photo from this url: {url}")
     image_bytes = await img_url_to_bytes(url)
-    photo = await uploader.upload(image_bytes, group_id)
+    photo = await uploader.upload(image_bytes)
     return photo
 
 
@@ -204,6 +204,12 @@ def characters_to_tags(characters: str) -> str:
     >>> characters_to_tags("keqing_(genshin_impact) hu_tao_(genshin_impact)")
     >>> "#HuTao #ХуТао #Keqing"
     """
+    # Removing all the unnecessary tags
+    characters_list = characters.split()
+    characters_list = [character for character in characters_list if character not in IGNORE_TAGS]
+    characters = ' '.join(characters_list)
+
+    # Making Danbooru-style tags look like normal tags
     characters = characters.replace('_(genshin_impact)', '')
     characters = characters.title()
     characters = characters.replace('_', '')
@@ -215,7 +221,7 @@ def characters_to_tags(characters: str) -> str:
         if character != 'HuTao':
             continue
 
-        # Add Russian variant right next to the original one
+        # Adding Russian variant right next to the original one
         characters_list.insert(i+1, HU_TAO_RUSSIAN_TAG)
         break
 
@@ -226,6 +232,7 @@ def characters_to_tags(characters: str) -> str:
 
 async def get_rerun_day(api: API, group_id: int, search_in=20) -> int | None:
     last_posts_request = await api.wall.get(owner_id=-group_id, count=search_in)
+    print(last_posts_request)
     last_posts = last_posts_request.items
     for post in last_posts:
         try:
@@ -234,13 +241,13 @@ async def get_rerun_day(api: API, group_id: int, search_in=20) -> int | None:
             day = int(re_match.group(1))
             return day
         except AttributeError:
-            logger.info(f"Couldn't find rerun day in post {post.id}, trying next one")
+            logger.info(f"Couldn't find rerun day in post {post}, trying next one")
             continue
 
 
-def create_text(last_rerun_day: int, artist: str, characters: str):
+def create_text(next_rerun_day: int, artist: str, characters: str):
     msg = (
-        f"{last_rerun_day} без рерана Ху Тао\n\nАвтор: {artist}"
+        f"{next_rerun_day} без рерана Ху Тао\n\nАвтор: {artist}"
         f"\n{characters} #genshinimpact #genshin_impact"
     )
     return msg

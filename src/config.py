@@ -31,13 +31,19 @@ HU_TAO_QUERY = 'hu_tao_(genshin_impact) -animated -rating:e'
 RERUN_DAY_SEARCH_RE = r'(\d+) день без рерана'
 HU_TAO_RUSSIAN_TAG = 'ХуТао'
 CHARACTER_RENAMINGS = {
-    "KamisatoAyaka": "Ayaka",
-    "KamisatoAyato": "Ayato",
-    "KaedeharaKazuha": "Kazuha",
-    "KujouSara": "Sara",
-    "SangonomiyaKokomi": "Kokomi",
-    "ShikanoinHeizou": "Heizou",
+    'KamisatoAyaka': 'Ayaka',
+    'KamisatoAyato': 'Ayato',
+    'KaedeharaKazuha': 'Kazuha',
+    'KujouSara': 'Sara',
+    'SangonomiyaKokomi': 'Kokomi',
+    'ShikanoinHeizou': 'Heizou',
 }
+IGNORE_TAGS = (
+    'boo_tao_(genshin_impact)',
+    'hu_tao_(lawson)_(genshin_impact)',
+    'hu_tao_(oneplus)_(genshin_impact)',
+    'hu_tao_(galaxy_store)_(genshin_impact)'
+)
 
 DB_PATH = './db.db'
 
