@@ -18,17 +18,26 @@
 # You may contact F1zzTao by this email address: timurbogdanov2008@gmail.com
 
 import asyncio
+import datetime
 import re
 from typing import Literal
 
+import aiofiles
 import aiohttp
 from loguru import logger
+from regex import D
 from vkbottle import API, Callback, Keyboard
 from vkbottle import KeyboardButtonColor as Color
 from vkbottle import PhotoWallUploader, VKAPIError
 from vkbottle.tools import PhotoMessageUploader
 
-from config import CHARACTER_RENAMINGS, HU_TAO_RUSSIAN_TAG, IGNORE_TAGS, RERUN_DAY_SEARCH_RE
+from config import (
+    CHARACTER_RENAMINGS,
+    HU_TAO_RUSSIAN_TAG,
+    IGNORE_TAGS,
+    LAST_RERUN_DATE_PATH,
+    RERUN_DAY_SEARCH_RE
+)
 from db import (
     get_post,
     get_post_attachment,
@@ -252,6 +261,17 @@ def create_text(next_rerun_day: int, artist: str, characters: str):
         f"\n{characters} #genshinimpact #genshin_impact"
     )
     return msg
+
+
+async def get_last_rerun_day() -> datetime.date:
+    async with aiofiles.open(LAST_RERUN_DATE_PATH, 'r') as f:
+        last_rerun_day = await f.read()
+    return datetime.strptime(last_rerun_day, '%Y-%m-%d').date()
+
+
+async def set_last_rerun_day(last_rerun_day: datetime.date):
+    async with aiofiles.open(LAST_RERUN_DATE_PATH, 'w') as f:
+        await f.write(str(last_rerun_day))
 
 
 async def main():

@@ -46,6 +46,7 @@ IGNORE_TAGS = (
 )
 
 DB_PATH = './db.db'
+LAST_RERUN_DATE_PATH = './last_rerun.txt'
 
 VK_API_TOKEN = os.getenv('VK_API_TOKEN')
 VK_USER_API_TOKEN = os.getenv('VK_USER_API_TOKEN')

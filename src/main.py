@@ -19,6 +19,7 @@
 
 import asyncio
 import logging
+import datetime
 
 from loguru import logger
 from vkbottle import Callback, GroupEventType, Keyboard
@@ -47,9 +48,11 @@ from image_searchers import DanbooruSearcher
 from utils import (
     characters_to_tags,
     create_text,
+    get_last_rerun_day,
     get_modified_from_search,
     get_rerun_day,
     run_search,
+    set_last_rerun_day,
     upload_wall_photo
 )
 
@@ -327,6 +330,53 @@ async def cancel_search_handler(event: MessageEvent):
         '✋ Вы отменили поиск вместе со всеми изменениями. '
         'Напишите ".Ху Тао" чтобы снова начать поиск!'
     )
+
+
+@bot.on.private_message(text=('.реран', '!реран'))
+async def rerun_info_handler(message: Message):
+    if message.from_id not in ADMIN_IDS:
+        return
+
+    try:
+        last_rerun_date = await get_last_rerun_day()
+    except Exception as e:
+        logger.error(e)
+        return (
+            '❌ Похоже, что последний день рерана Ху Тао ещё не установлен. Напишите'
+            ' ".установить реран"'
+        )
+    today_date = datetime.date.today()
+    no_rerun_days = (today_date - last_rerun_date).days
+    msg = (
+        f'🕒 Последний реран Ху Тао: {str(last_rerun_date)}\n'
+        f'⏳ Это уже {no_rerun_days} день без рерана Ху Тао.'
+    )
+    return msg
+
+
+@bot.on.private_message(text=('.установить реран', '!установить реран'))
+async def set_rerun_day_info_handler(message: Message):
+    if message.from_id not in ADMIN_IDS:
+        return
+
+    return 'Чтобы установить последний день рерана Ху Тао, укажите дату в формате "ГГГГ-ММ-ДД"'
+
+
+@bot.on.private_message(text=('.установить реран <date_str>', '!установить реран <date_str>'))
+async def set_rerun_day_handler(message: Message, date_str: str):
+    if message.from_id not in ADMIN_IDS:
+        return
+
+    try:
+        last_rerun_date = datetime.date.fromisoformat(date_str)
+    except ValueError:
+        return (
+            '❌ Неверный формат даты. Напишите ".установить реран" без параметров, чтобы узнать,'
+            ' как установить дату.'
+        )
+
+    await set_last_rerun_day(last_rerun_date)
+    return '✅ Готово!'
 
 
 @bot.on.private_message(text='!debug')
