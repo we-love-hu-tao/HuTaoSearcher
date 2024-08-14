@@ -24,7 +24,7 @@ import aiosqlite
 
 from config import DB_PATH
 
-SQL_CREATE_POSTS_TABLE = """CREATE TABLE IF NOT EXISTS posts (
+SQL_POSTS_TABLE = """CREATE TABLE IF NOT EXISTS posts (
     id INTEGER PRIMARY KEY UNIQUE,
     status TEXT DEFAULT "no_rating" NOT NULL,
     preview_url TEXT NOT NULL,
@@ -35,7 +35,7 @@ SQL_CREATE_POSTS_TABLE = """CREATE TABLE IF NOT EXISTS posts (
     source TEXT NOT NULL
     -- Possible status values: 'no_rating', 'to_post', 'deleted'
 );"""
-SQL_CREATE_SEARCHES_TABLE = """CREATE TABLE IF NOT EXISTS searches (
+SQL_SEARCHES_TABLE = """CREATE TABLE IF NOT EXISTS searches (
     search_id INTEGER PRIMARY KEY UNIQUE,
     search_posts TEXT NOT NULL
 );"""
@@ -47,8 +47,8 @@ SQL_VK_ATTACHMENTS_TABLE = """CREATE TABLE IF NOT EXISTS vk_attachments (
 
 async def create_db() -> None:
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(SQL_CREATE_POSTS_TABLE)
-        await db.execute(SQL_CREATE_SEARCHES_TABLE)
+        await db.execute(SQL_POSTS_TABLE)
+        await db.execute(SQL_SEARCHES_TABLE)
         await db.execute(SQL_VK_ATTACHMENTS_TABLE)
         await db.commit()
 

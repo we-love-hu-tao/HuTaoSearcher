@@ -27,6 +27,9 @@ load_dotenv()
 GROUP_ID = 193964161
 ADMIN_IDS = (322615766, 504114608,)
 
+# Set in seconds
+post_interval = 3600
+
 HU_TAO_QUERY = 'hu_tao_(genshin_impact) -animated -rating:e'
 RERUN_DAY_SEARCH_RE = r'(\d+) день без рерана'
 HU_TAO_RUSSIAN_TAG = 'ХуТао'

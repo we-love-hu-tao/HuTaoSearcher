@@ -25,11 +25,11 @@ from typing import Literal
 import aiofiles
 import aiohttp
 from loguru import logger
-from regex import D
 from vkbottle import API, Callback, Keyboard
 from vkbottle import KeyboardButtonColor as Color
 from vkbottle import PhotoWallUploader, VKAPIError
 from vkbottle.tools import PhotoMessageUploader
+from vkbottle_types.objects import WallWallpostFull
 
 from config import (
     CHARACTER_RENAMINGS,
@@ -240,11 +240,14 @@ def characters_to_tags(characters: str) -> str:
     return characters
 
 
-async def get_rerun_day(api: API, group_id: int, search_in=20) -> int | None:
-    logger.info(f'Getting last {search_in} posts')
-    last_posts_request = await api.wall.get(owner_id=-group_id, count=search_in)
-    last_posts = last_posts_request.items
-    for post in last_posts:
+async def get_last_posts(api: API, group_id: int, count=20) -> list[WallWallpostFull]:
+    logger.info(f'Getting last {count} posts')
+    last_posts_request = await api.wall.get(owner_id=-group_id, count=count)
+    return last_posts_request.items
+
+
+def get_rerun_day(posts: list[WallWallpostFull]) -> int | None:
+    for post in posts:
         try:
             post_text = post.text
             re_match = re.search(RERUN_DAY_SEARCH_RE, post_text)

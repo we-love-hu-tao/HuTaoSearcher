@@ -18,8 +18,9 @@
 # You may contact F1zzTao by this email address: timurbogdanov2008@gmail.com
 
 import asyncio
-import logging
 import datetime
+import logging
+import time
 
 from loguru import logger
 from vkbottle import Callback, GroupEventType, Keyboard
@@ -33,7 +34,8 @@ from config import (
     GROUP_ID,
     HU_TAO_QUERY,
     VK_API_TOKEN,
-    VK_USER_API_TOKEN
+    VK_USER_API_TOKEN,
+    post_interval
 )
 from db import (
     add_posts,
@@ -48,6 +50,7 @@ from image_searchers import DanbooruSearcher
 from utils import (
     characters_to_tags,
     create_text,
+    get_last_posts,
     get_last_rerun_day,
     get_modified_from_search,
     get_rerun_day,
@@ -253,8 +256,9 @@ async def end_search_handler(event: MessageEvent):
     await event.edit_message(
         peer_id=event.peer_id,
         message=(
-            '➡️ Вы собираетесь запостить или оставить в отложке'
-            f' {to_post_count} пост{ending}. Продолжить?',
+            f'➡️ Вы собираетесь запостить или оставить в отложке {to_post_count} пост{ending}.'
+            f' На данный момент в боте установлен интервал постов в {post_interval} секунд.'
+            ' Продолжить?',
         ),
         keyboard=confirmation_kbd
     )
@@ -283,12 +287,29 @@ async def post_handler(event: MessageEvent):
     await delete_search(search_id)
     await update_posts_status(to_post_ids, 'deleted')
 
+    posts = await get_last_posts(user.api, GROUP_ID)
+    next_rerun_day = get_rerun_day(posts) + 1
+    last_post_time = posts[0].date
     for post in to_post:
-        last_rerun_day = await get_rerun_day(user.api, GROUP_ID)
         attachment = await upload_wall_photo(photo_wall_upl, post['file_url'])
-        text = create_text(last_rerun_day+1, post['artist'], post['characters'])
+        text = create_text(next_rerun_day, post['artist'], post['characters'])
+        next_rerun_day += 1
+
+        # Determining when to post this post
+        current_time = int(time.time())
+        if last_post_time + post_interval < current_time:
+            # [POST_INTERVAL] seconds has passed since last post
+            publish_date = None
+        else:
+            # [POST_INTERVAL] seconds has not passed since last post
+            publish_date = current_time-last_post_time+current_time
+
         await user.api.wall.post(
-            -GROUP_ID, from_group=True, message=text, attachments=[attachment]
+            -GROUP_ID,
+            from_group=True,
+            message=text,
+            attachments=[attachment],
+            publish_date=publish_date,
         )
         await asyncio.sleep(2)
 
@@ -339,8 +360,7 @@ async def rerun_info_handler(message: Message):
 
     try:
         last_rerun_date = await get_last_rerun_day()
-    except Exception as e:
-        logger.error(e)
+    except FileNotFoundError:
         return (
             '❌ Похоже, что последний день рерана Ху Тао ещё не установлен. Напишите'
             ' ".установить реран"'
@@ -377,15 +397,6 @@ async def set_rerun_day_handler(message: Message, date_str: str):
 
     await set_last_rerun_day(last_rerun_date)
     return '✅ Готово!'
-
-
-@bot.on.private_message(text='!debug')
-async def debug_handler(message: Message):
-    if message.from_id not in ADMIN_IDS:
-        return
-
-    last_rerun_day = await get_rerun_day(user.api, GROUP_ID)
-    return f'Последний день рерана: {last_rerun_day} (следующий: {last_rerun_day+1})'
 
 
 if __name__ == '__main__':
