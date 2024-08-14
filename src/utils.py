@@ -272,7 +272,7 @@ def create_text(next_rerun_day: int, artist: str, characters: str):
 async def get_last_rerun_day() -> datetime.date:
     async with aiofiles.open(LAST_RERUN_DATE_PATH, 'r') as f:
         last_rerun_day = await f.read()
-    return datetime.strptime(last_rerun_day, '%Y-%m-%d').date()
+    return datetime.date.fromisoformat(last_rerun_day)
 
 
 async def set_last_rerun_day(last_rerun_day: datetime.date):
