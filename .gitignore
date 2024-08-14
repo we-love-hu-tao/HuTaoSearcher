@@ -163,3 +163,6 @@ cython_debug/
 
 # SQLite 3 Database
 db.db
+
+# This bot's rerun file
+last_rerun.txt

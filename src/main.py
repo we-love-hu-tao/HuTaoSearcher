@@ -279,7 +279,7 @@ async def post_handler(event: MessageEvent):
     payload = event.get_payload_json()
     search_id = payload['search_id']
 
-    to_post = await get_modified_from_search(search_id, 'to_post')
+    to_post = await get_modified_from_search(search_id, 'to_post', sort=True)
     to_post_ids = [post['id'] for post in to_post]
     to_post_count = len(to_post_ids)
     await event.edit_message('⏳ Постим посты...')
@@ -302,7 +302,9 @@ async def post_handler(event: MessageEvent):
             publish_date = None
         else:
             # [POST_INTERVAL] seconds has not passed since last post
-            publish_date = current_time-last_post_time+current_time
+            difference = current_time-last_post_time
+            publish_date = current_time+post_interval-difference
+        last_post_time = publish_date or current_time
 
         await user.api.wall.post(
             -GROUP_ID,
@@ -320,7 +322,7 @@ async def post_handler(event: MessageEvent):
         ending = 'ов'
 
     await event.edit_message(
-        f'✅ Успешно запостили {to_post_count} пост{ending}!'
+        f'✅ Успешно запостили или оставили в отложке {to_post_count} пост{ending}!'
         ' Напишите ".Ху Тао" чтобы снова начать поиск!'
     )
 

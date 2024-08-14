@@ -179,7 +179,8 @@ async def run_search(
 
 async def get_modified_from_search(
     search_id: int,
-    include_only: Literal['no_rating', 'to_post', 'deleted'] | None = None
+    include_only: Literal['no_rating', 'to_post', 'deleted'] | None = None,
+    sort: bool = False,
 ) -> list[dict]:
     # This gets all post info, not only ids. Might be useful in the future.
     search_post_ids = await get_search_posts(search_id)
@@ -195,6 +196,8 @@ async def get_modified_from_search(
             if post['id'] in search_post_ids and post['status'] != 'no_rating':
                 modified_posts.append(post)
 
+    if sort:
+        modified_posts = sorted(modified_posts, key=lambda x: search_post_ids.index(x['id']))
     return modified_posts
 
 
