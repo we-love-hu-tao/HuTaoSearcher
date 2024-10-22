@@ -27,7 +27,7 @@ import aiohttp
 from loguru import logger
 from vkbottle import API, Callback, Keyboard
 from vkbottle import KeyboardButtonColor as Color
-from vkbottle import PhotoWallUploader, VKAPIError
+from vkbottle import PhotoWallUploader
 from vkbottle.tools import PhotoMessageUploader
 from vkbottle_types.objects import WallWallpostFull
 
@@ -77,11 +77,15 @@ async def get_attachment(
 
 async def upload_wall_photo(
     uploader: PhotoWallUploader, url: str
-) -> str:
+) -> str | None:
     # Uploading image as a wall photo
     logger.info(f"Uploading new wall photo from this url: {url}")
     image_bytes = await img_url_to_bytes(url)
-    photo = await uploader.upload(image_bytes)
+    try:
+        photo = await uploader.upload(image_bytes)
+    except Exception as e:
+        logger.error(f"Couldn't upload photo for wall: {e}")
+        return
     return photo
 
 

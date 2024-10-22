@@ -290,8 +290,12 @@ async def post_handler(event: MessageEvent):
     posts = await get_last_posts(user.api, GROUP_ID)
     next_rerun_day = get_rerun_day(posts) + 1
     last_post_time = posts[0]["date"]
+    post_failed = 0
     for post in to_post:
         attachment = await upload_wall_photo(photo_wall_upl, post['file_url'])
+        if not attachment:
+            post_failed += 1
+            continue
         text = create_text(next_rerun_day, post['artist'], post['characters'])
         next_rerun_day += 1
 
@@ -321,10 +325,14 @@ async def post_handler(event: MessageEvent):
     elif to_post_count >= 5:
         ending = 'ов'
 
-    await event.edit_message(
+    msg = (
         f'✅ Успешно запостили или оставили в отложке {to_post_count} пост{ending}!'
         ' Напишите ".Ху Тао" чтобы снова начать поиск!'
     )
+    if post_failed:
+        msg += f"\n⚠️ Некоторые посты не удалось запостить ({post_failed})."
+
+    await event.edit_message(msg)
 
 
 @bot.on.raw_event(
