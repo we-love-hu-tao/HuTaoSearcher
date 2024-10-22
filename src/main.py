@@ -307,7 +307,7 @@ async def post_handler(event: MessageEvent):
         last_post_time = publish_date or current_time
 
         await user.api.wall.post(
-            -GROUP_ID,
+            owner_id=-GROUP_ID,
             from_group=True,
             message=text,
             attachments=[attachment],

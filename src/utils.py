@@ -110,7 +110,7 @@ async def run_search(
 
     try:
         photo = await get_attachment(uploader, peer_id, show_post['preview_url'], show_post['id'])
-    except VKAPIError[100] as e:
+    except Exception as e:
         # ? This is a very random error that I don't
         # ? even know why it happens or how to fix it...
         logger.info(f"Couldn't upload an image: {e}")
