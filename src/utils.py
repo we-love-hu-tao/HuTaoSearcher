@@ -245,19 +245,20 @@ def characters_to_tags(characters: str) -> str:
 
 async def get_last_posts(api: API, group_id: int, count=20) -> list[WallWallpostFull]:
     logger.info(f'Getting last {count} posts')
-    last_posts_request = await api.wall.get(owner_id=-group_id, count=count)
-    return last_posts_request.items
+    # TODO: Replace once vkbottle fixes their shit
+    last_posts_request = await api.request("wall.get", {"owner_id": -group_id, "count": count})
+    return last_posts_request["response"]["items"]
 
 
-def get_rerun_day(posts: list[WallWallpostFull]) -> int | None:
+def get_rerun_day(posts: list[dict]) -> int | None:
     for post in posts:
         try:
-            post_text = post.text
+            post_text = post["text"]
             re_match = re.search(RERUN_DAY_SEARCH_RE, post_text)
             day = int(re_match.group(1))
             return day
-        except AttributeError:
-            logger.info(f"Couldn't find rerun day in post {post}, trying next one")
+        except KeyError:
+            logger.info(f"Couldn't find rerun day in this post, trying next one: {post}")
             continue
 
 
