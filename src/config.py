@@ -45,7 +45,8 @@ IGNORE_TAGS = (
     'boo_tao_(genshin_impact)',
     'hu_tao_(lawson)_(genshin_impact)',
     'hu_tao_(oneplus)_(genshin_impact)',
-    'hu_tao_(galaxy_store)_(genshin_impact)'
+    'hu_tao_(galaxy_store)_(genshin_impact)',
+    'hu_tao_(cherries_snow-laden)_(genshin_impact)'
 )
 
 DB_PATH = './db.db'
