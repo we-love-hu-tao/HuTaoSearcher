@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Hu Tao Art Searcher.  If not, see <https://www.gnu.org/licenses/>.
 
-# You may contact F1zzTao by this email address: timurbogdanov2008@gmail.com
-
 import asyncio
 import datetime
 import logging
