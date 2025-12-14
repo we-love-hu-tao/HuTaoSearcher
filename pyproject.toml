@@ -1,0 +1,13 @@
+[project]
+name = "hutaosearcher"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiosqlite>=0.22.0",
+    "booru>=1.2.1",
+    "loguru>=0.7.3",
+    "python-dotenv>=1.2.1",
+    "vkbottle>=4.6.2",
+]
