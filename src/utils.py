@@ -259,7 +259,7 @@ def get_rerun_day(posts: list[dict]) -> int | None:
             re_match = re.search(RERUN_DAY_SEARCH_RE, post_text)
             day = int(re_match.group(1))
             return day
-        except KeyError:
+        except (KeyError, AttributeError):
             logger.info(f"Couldn't find rerun day in this post, trying next one: {post}")
             continue
 
